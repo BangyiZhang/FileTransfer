@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Transfer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            color: #333;
+        }
+        .container {
+            background: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        #fileInput, #downloadLink, button {
+            margin: 20px 0;
+            padding: 10px 20px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            width: 100%;
+            max-width: 300px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #downloadLink {
+            background-color: #008CBA;
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+        }
+        #downloadLink:hover {
+            background-color: #007BB5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>File Transfer</h1>
+        <input type="file" id="fileInput">
+        <button onclick="uploadFile()">Upload File</button>
+        <a id="downloadLink" style="display:none;">Download File</a>
+    </div>
+    <script>
+        const socket = new WebSocket('ws://192.168.0.100:3000'); // 使用你的服务器IP
+
+        socket.onopen = function(event) {
+            console.log('WebSocket connection established');
+        };
+
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            if (data.type === 'fileUploaded') {
+                downloadFile(data.filename);
+            }
+        };
+
+        function uploadFile() {
+            const input = document.getElementById('fileInput');
+            const file = input.files[0];
+            if (!file) {
+                alert('Please select a file first');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload', true);
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    const response = JSON.parse(xhr.responseText);
+                    alert('File uploaded successfully');
+                    downloadFile(response.filename);
+                    socket.send(JSON.stringify({ type: 'fileUploaded', filename: response.filename }));
+                } else {
+                    alert('File upload failed');
+                }
+            };
+            xhr.send(formData);
+        }
+
+        function downloadFile(filename) {
+            const link = document.getElementById('downloadLink');
+            link.href = `/download/${filename}`;
+            link.style.display = 'block';
+            link.innerText = `Download ${filename}`;
+        }
+    </script>
+</body>
+</html>
